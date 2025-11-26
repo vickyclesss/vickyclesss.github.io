@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>单词记忆系统</title>
+
+    <style>
+        body {
+            background: #f3f3f3;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .container {
+            max-width: 800px;
+            margin: 40px auto;
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        .tab {
+            display: inline-block;
+            margin-right: 20px;
+            font-size: 18px;
+            cursor: pointer;
+        }
+        .tab.active {
+            font-weight: bold;
+            color: #007bff;
+        }
+        #wordBox {
+            margin-top: 20px;
+            font-size: 20px;
+        }
+        .btn {
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            border-radius: 6px;
+            cursor: pointer;
+            border: none;
+            margin: 10px 5px;
+        }
+        .btn:hover {
+            background: #0056c1;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>单词记忆系统</h2>
+
+    <!-- Tabs -->
+    <div>
+        <span class="tab active" onclick="switchTab('learn')">学习</span>
+        <span class="tab" onclick="switchTab('review')">复习</span>
+        <span class="tab" onclick="switchTab('upload')">上传词库</span>
+    </div>
+
+    <hr>
+
+    <div id="wordBox">请稍候，正在加载词库...</div>
+
+    <button class="btn" onclick="prevGroup()">上一组</button>
+    <button class="btn" onclick="nextGroup()">下一组</button>
+
+</div>
+
+<script>
+// ========== 全局变量 ==========
+let words = [];
+let groupIndex = 0;
+const GROUP_SIZE = 5;
+
+// ========== 切换 Tab ==========
+function switchTab(tab) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    event.target.classList.add('active');
+}
+
+// ========== 加载 CSV ==========
+async function loadCSV() {
+    try {
+        const res = await fetch("sample-vocabulary.csv");
+        const text = await res.text();
+
+        words = text.split("\n").slice(1)  // 去掉标题行
+            .map(row => {
+                let cols = row.split(",");
+                return {
+                    word: cols[0],
+                    phonetic: cols[1],
+                    chinese: cols[2]
+                };
+            })
+            .filter(w => w.word && w.chinese);
+        
+        showGroup();
+
+    } catch (err) {
+        document.getElementById("wordBox").innerHTML = "❌ 无法读取 sample-vocabulary.csv，请检查文件路径。";
+    }
+}
+
+// ========== 显示单词组 ==========
+function showGroup() {
+    if (words.length === 0) return;
+
+    let start = groupIndex * GROUP_SIZE;
+    let end = start + GROUP_SIZE;
+
+    let group = words.slice(start, end);
+
+    if (group.length === 0) {
+        document.getElementById("wordBox").innerHTML = "已学完全部单词！";
+        return;
+    }
+
+    let html = "";
+    group.forEach(w => {
+        html += `
+            <div style='margin-bottom:12px;'>
+                <strong>${w.word}</strong> ${w.phonetic}<br>
+                <span style='color:#666;'>${w.chinese}</span>
+            </div>
+        `;
+    });
+
+    document.getElementById("wordBox").innerHTML = html;
+}
+
+// ========== 上一组 ==========
+function prevGroup() {
+    if (groupIndex > 0) {
+        groupIndex--;
+        showGroup();
+    }
+}
+
+// ========== 下一组 ==========
+function nextGroup() {
+    if ((groupIndex + 1) * GROUP_SIZE < words.length) {
+        groupIndex++;
+        showGroup();
+    }
+}
+
+// 初始加载
+loadCSV();
+</script>
+
+</body>
+</html>
