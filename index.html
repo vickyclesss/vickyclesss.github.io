@@ -36,6 +36,11 @@
   .note{background:#fff8dc;padding:10px;border-radius:6px;border:1px solid #ffe6a7}
   .flex-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
   .muted-2{color:#9aa0a6;font-size:12px}
+
+  /* 新增：发音按钮样式（最小改动） */
+  .word-text { font-weight: 500; margin-right: 6px; font-size:18px; display:inline-block; vertical-align:middle; }
+  .pronounce-btn { border: none; background: transparent; cursor: pointer; font-size: 18px; vertical-align: middle; margin-left:4px; padding:2px 6px; }
+  .pronounce-btn:hover { color: #007BFF; }
 </style>
 </head>
 <body>
@@ -76,7 +81,7 @@
       </div>
 
       <div class="muted-2" style="margin-top:8px">
-        说明：每组 5 个单词（可在源码里调整）。完成两轮合格测试或手动点击“完成学习”都会将本组单词标记为“已学”并生成复习计划（按日统计会记录每日学词数）。
+        说明：每组 5 个单词。完成两轮合格测试或手动点击“完成学习”都会将本组单词标记为“已学”并生成复习计划（按日统计会记录每日学词数）。
       </div>
 
       <div id="testArea"></div>
@@ -241,13 +246,44 @@ function renderLearn(){
   let html = `<div class="small">章节: 第 ${group[0].chapterIdx+1} 章 · 关卡: 第 ${group[0].levelIdx+1} 关 · 组: 第 ${group[0].groupIdx+1}</div>`;
   group.forEach(w=>{
     html += `<div class="wordItem">
-      <strong style="font-size:18px">${esc(w.english)}</strong>
+      <strong class="word-text">${esc(w.english)}</strong>
       <span class="small" style="margin-left:8px">${esc(w.phonetic||'')}</span><br>
       <span class="muted">${esc(w.chinese)}</span>
       <div class="small" style="margin-top:6px">状态: ${w.learned?('<span class="badge ok">已学</span>'):'<span class="badge">未学</span>'}</div>
     </div>`;
   });
   box.innerHTML = html;
+
+  // --- 新增：为每个单词插入发音按钮（使用 Google Translate TTS） ---
+  try {
+    const wordEls = box.querySelectorAll('.word-text');
+    wordEls.forEach(el => {
+      // 如果按钮已存在就跳过（防止多次渲染重复插入）
+      if(el.nextSibling && el.nextSibling.classList && el.nextSibling.classList.contains && el.nextSibling.classList.contains('pronounce-btn')) return;
+      const btn = document.createElement('button');
+      btn.className = 'pronounce-btn';
+      btn.type = 'button';
+      btn.title = '播放发音';
+      btn.innerText = '🔊';
+      btn.addEventListener('click', () => {
+        const word = el.innerText.trim();
+        if(!word) return;
+        // 使用 Google Translate TTS 生成发音
+        const url = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(word)}&tl=en&client=tw-ob`;
+        const audio = new Audio(url);
+        audio.play().catch(err => {
+          // 不要阻塞主流程，控制台输出错误
+          console.error('播放失败：', err);
+          alert('无法播放发音（浏览器可能阻止了自动播放或该接口在本域不可用）。');
+        });
+      });
+      // 将按钮插入到单词后面
+      el.insertAdjacentElement('afterend', btn);
+    });
+  } catch(err) {
+    console.error('插入发音按钮失败：', err);
+  }
+
   updateStats();
   updateProgressBar();
 }
