@@ -3,48 +3,55 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>单词记忆系统（CSV: English,Chinese）</title>
+<title>单词记忆系统</title>
 <style>
-  body { background:#f3f7fa; font-family: "Segoe UI", Tahoma, Arial; color:#222; margin:0; padding:20px; }
-  .wrap{max-width:980px;margin:24px auto;background:#fff;border-radius:10px;padding:20px;box-shadow:0 6px 24px rgba(0,0,0,0.08)}
-  h1{text-align:center;margin:8px 0 18px}
-  .tabs{display:flex;gap:12px;justify-content:center;margin-bottom:12px;flex-wrap:wrap}
-  .tab{padding:8px 14px;border-radius:8px;cursor:pointer;background:#eef6ff;color:#007bff}
+  body { background:#f3f7fa; font-family: "Segoe UI", Tahoma, Arial; color:#222; margin:0; padding:18px; }
+  .wrap{max-width:980px;margin:18px auto;background:#fff;border-radius:10px;padding:18px;box-shadow:0 6px 20px rgba(0,0,0,0.08)}
+  h1{text-align:center;margin:6px 0 14px}
+  .tabs{display:flex;gap:10px;justify-content:center;margin-bottom:12px;flex-wrap:wrap}
+  .tab{padding:8px 12px;border-radius:8px;cursor:pointer;background:#eef6ff;color:#007bff;user-select:none}
   .tab.active{background:#007bff;color:#fff}
-  #wordBox{min-height:160px;padding:16px;border-radius:8px;background:#fafafa;border:1px solid #eee;margin-bottom:12px}
+  #wordBox{min-height:140px;padding:14px;border-radius:8px;background:#fafafa;border:1px solid #eee;margin-bottom:12px}
   .wordItem{padding:10px;border-bottom:1px dashed #eee}
   .controls{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
   .btn{background:#007bff;color:#fff;padding:8px 14px;border:none;border-radius:8px;cursor:pointer}
   .btn.secondary{background:#6c757d}
+  .muted{color:#888;font-size:13px}
   .small{font-size:13px;color:#666}
-  .stat{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;margin:12px 0}
+  .stat{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin:10px 0}
   .stat>div{background:#f6fbff;padding:10px;border-radius:8px;border:1px solid #e6f0ff;min-width:120px;text-align:center}
-  .uploader{padding:8px;background:#fff;border-radius:8px;border:1px dashed #ddd;display:inline-block}
   .testArea{padding:12px;background:#fff;border-radius:8px;border:1px solid #eee;margin-top:12px}
-  .choice{display:block;padding:10px;margin:8px 0;border-radius:6px;border:1px solid #eee;cursor:pointer;background:#fff}
+  .choice{display:block;padding:10px;margin:8px 0;border-radius:6px;border:1px solid #eee;cursor:pointer;background:#fff;user-select:none}
   .choice.correct{background:#e6ffea;border-color:#8fdd9c}
   .choice.wrong{background:#ffecec;border-color:#ff9a9a}
   .progressBar{height:10px;background:#e9f4ff;border-radius:999px;overflow:hidden;margin:12px 0}
   .progressBarInner{height:100%;background:#007bff;width:0%}
   table{width:100%;border-collapse:collapse}
-  th,td{padding:8px;border-bottom:1px solid #eee}
-  .muted{color:#888;font-size:13px}
+  th,td{padding:8px;border-bottom:1px solid #eee;text-align:left}
   .center{display:flex;justify-content:center;align-items:center;gap:8px}
+  .badge{display:inline-block;padding:2px 6px;border-radius:999px;background:#eee;font-size:12px}
+  input[type="file"]{display:inline-block}
+  .danger{background:#ff6b6b}
+  .ok{background:#60c66d}
+  .note{background:#fff8dc;padding:10px;border-radius:6px;border:1px solid #ffe6a7}
+  .flex-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .muted-2{color:#9aa0a6;font-size:12px}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>单词记忆系统（CSV 标题：English,Chinese）</h1>
+  <h1>单词记忆系统</h1>
 
-  <div class="tabs">
+  <div class="tabs" role="tablist">
     <div class="tab active" id="tab-learn" onclick="switchTab('learn')">学习</div>
     <div class="tab" id="tab-review" onclick="switchTab('review')">复习</div>
+    <div class="tab" id="tab-wrong" onclick="switchTab('wrong')">错题本</div>
     <div class="tab" id="tab-upload" onclick="switchTab('upload')">上传词库</div>
     <div class="tab" id="tab-stats" onclick="switchTab('stats')">统计</div>
   </div>
 
   <div id="content">
-    <!-- 学习 -->
+    <!-- 学习 Pane -->
     <div id="pane-learn">
       <div class="stat" id="topStats">
         <div><strong id="totalWords">0</strong><div class="small">总单词</div></div>
@@ -56,23 +63,26 @@
 
       <div id="wordBox">正在加载词库……</div>
 
-      <div class="controls" style="margin-top:12px">
-        <div>
+      <div class="controls" style="margin-top:10px">
+        <div class="flex-row">
           <button class="btn" onclick="prevGroup()">上一组</button>
           <button class="btn" onclick="nextGroup()">下一组</button>
+          <button class="btn" onclick="markGroupLearned()">完成学习（标记本组为已学）</button>
         </div>
-        <div>
+        <div class="flex-row">
           <button class="btn" id="startTestBtn" onclick="startTest()">开始测试（当前组）</button>
           <button class="btn secondary" onclick="requestNotificationPermission()">启用通知</button>
         </div>
       </div>
 
-      <div class="small" style="margin-top:8px">说明：每组 5 个单词，需要通过 <strong>两轮测试</strong>（每轮随机出题）才算该组学完并生成复习计划（复习天：1,2,3,5,7,9,12,14,17,21）。</div>
+      <div class="muted-2" style="margin-top:8px">
+        说明：每组 5 个单词（可在源码里调整）。完成两轮合格测试或手动点击“完成学习”都会将本组单词标记为“已学”并生成复习计划（按日统计会记录每日学词数）。
+      </div>
 
       <div id="testArea"></div>
     </div>
 
-    <!-- 复习 -->
+    <!-- 复习 Pane -->
     <div id="pane-review" style="display:none">
       <div style="display:flex;justify-content:space-between;align-items:center">
         <h3>复习任务</h3>
@@ -87,20 +97,27 @@
       </div>
     </div>
 
-    <!-- 上传 -->
+    <!-- 错题本 Pane -->
+    <div id="pane-wrong" style="display:none">
+      <h3>错题本</h3>
+      <div id="wrongList">正在加载错题本……</div>
+      <div style="margin-top:8px" class="muted-2">说明：错题需要连续 21 次答对才会自动移出；任何一次错误会把该词的连续正确计数重置为 0。</div>
+    </div>
+
+    <!-- 上传 Pane -->
     <div id="pane-upload" style="display:none">
       <h3>上传词库（CSV）</h3>
-      <div class="uploader center">
+      <div class="center" style="margin-bottom:8px">
         <input type="file" id="csvFile" accept=".csv" />
         <button class="btn" onclick="uploadCSV()">上传并导入</button>
       </div>
-      <div style="margin-top:12px">
-        <p class="muted">CSV 格式说明：第一行为标题，必须为 <code>English,Chinese</code>（不区分大小写）。每行示例：<code>apple,苹果</code></p>
-        <p class="muted">上传新词库会重置当前进度（若需保留，请先导出备份）。</p>
+      <div class="note">
+        <strong>格式要求：</strong> CSV 第一行为标题，必须包含 <code>English</code> 和 <code>Chinese</code> 两列（不区分大小写）。例如：<code>English,Chinese</code>
+        <div class="muted-2" style="margin-top:6px">若上传新词库会重置当前进度（包含错题本与按日统计）。</div>
       </div>
     </div>
 
-    <!-- 统计 -->
+    <!-- 统计 Pane -->
     <div id="pane-stats" style="display:none">
       <h3>统计报告</h3>
       <div id="statReport">加载中……</div>
@@ -109,57 +126,71 @@
 </div>
 
 <script>
-/* ================= 配置 ================= */
+/* ================= 配置与状态 ================= */
 const REVIEW_DAYS = [1,2,3,5,7,9,12,14,17,21];
-const GROUP_SIZE = 5; // 每页/组 5 个
-let allWords = [];   // 单词数据结构数组
+const GROUP_SIZE = 5;
+let allWords = []; // {id,english,phonetic?,chinese,groupIdx,levelIdx,chapterIdx,learned,learnedDate,reviewDates,reviewDone,testsPassed}
 let groupIdx = 0;
 let currentTab = 'learn';
 let testState = null;
 
-/* ======= 日期工具 ======= */
+/* localStorage keys */
+const KEY_STATE = 'vocab_full_state_v2';
+const KEY_WRONGBK = 'vocab_wrongbook_v2';
+const KEY_DAILY = 'vocab_daily_stats_v2';
+
+let wrongBook = {};  // { id: {id,english,chinese,consecutiveCorrect} }
+let dailyStats = {}; // { 'YYYY-MM-DD': { learned: N } }
+
+/* ================= 工具函数 ================= */
 function formatDate(d){ const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), dd=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${dd}`; }
-function addDays(baseDate, n){ const d=new Date(baseDate); d.setDate(d.getDate()+n); return d; }
+function addDays(base, n){ const d=new Date(base); d.setDate(d.getDate()+n); return d; }
+function saveAllState(){ localStorage.setItem(KEY_STATE, JSON.stringify(allWords)); localStorage.setItem(KEY_WRONGBK, JSON.stringify(wrongBook)); localStorage.setItem(KEY_DAILY, JSON.stringify(dailyStats)); }
+function loadAllState(){ const s = localStorage.getItem(KEY_STATE); allWords = s ? JSON.parse(s) : []; wrongBook = JSON.parse(localStorage.getItem(KEY_WRONGBK) || '{}'); dailyStats = JSON.parse(localStorage.getItem(KEY_DAILY) || '{}'); }
+function esc(s){ if(!s) return ''; return (''+s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-/* ======= 本地存储 ======= */
-const STORAGE_KEY = 'vocab_system_csv_v1';
-function saveState(){ localStorage.setItem(STORAGE_KEY, JSON.stringify({allWords})); }
-function loadState(){ const raw = localStorage.getItem(STORAGE_KEY); if(!raw) return false; try{ const obj = JSON.parse(raw); allWords = obj.allWords || []; return true; } catch(e){ console.error(e); return false; } }
-
-/* ======= CSV 解析 (有标题 English,Chinese) ======= */
+/* ================= 更稳健 CSV 解析（支持 Excel 导出并去掉包裹引号） ================= */
+function stripQuotes(s){ if(typeof s !== 'string') return s; s = s.trim(); if((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))) s = s.slice(1, -1); return s.trim(); }
 function parseCSV(text){
+  if(!text) return [];
+  // 去 BOM
+  if(text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
   const lines = text.split(/\r?\n/).map(l=>l.trim()).filter(l=>l.length>0);
-  if(lines.length===0) return [];
-  // 解析每行，用第一个逗号分割（避免简单场景中多余逗号）
-  const rows = lines.map(line => {
-    // 尝试更稳妥的分割：把第一列到第一个逗号，剩下为第二列
+  if(lines.length === 0) return [];
+  const rows = [];
+  for(let i=0;i<lines.length;i++){
+    let line = lines[i];
     const idx = line.indexOf(',');
-    if(idx === -1) return [line.trim(), ''];
-    const a = line.slice(0, idx).trim();
-    const b = line.slice(idx+1).trim();
-    return [a,b];
-  });
-  // 判断并移除标题行（检查第一行是否包含 english 或 chinese）
-  const header = rows[0].map(c=> (c||'').toString().toLowerCase() );
+    if(idx === -1){
+      rows.push([ stripQuotes(line), '' ]);
+    } else {
+      let a = line.slice(0, idx).trim();
+      let b = line.slice(idx+1).trim();
+      a = stripQuotes(a);
+      b = stripQuotes(b);
+      rows.push([a,b]);
+    }
+  }
+  // 移除标题行（English,Chinese）
+  const header = (rows[0]||[]).map(c => (c||'').toString().toLowerCase());
   if(header.includes('english') && header.includes('chinese')) rows.shift();
-  // 返回规范二维数组 [english, chinese]
   return rows.map(r => [r[0]||'', r[1]||'']).filter(r => r[0]);
 }
 
-/* ======= 初始化单词数组并分组/关/章 ======= */
+/* ================= 初始化与分组 ================= */
 function initializeWords(rows){
   allWords = rows.map((r,i) => {
-    const groupIndex = Math.floor(i / GROUP_SIZE);
-    const levelIndex = Math.floor(groupIndex / 3);      // 3 组 = 1 关
-    const chapterIndex = Math.floor(levelIndex / 3);    // 3 关 = 1 章
+    const g = Math.floor(i / GROUP_SIZE);
+    const level = Math.floor(g / 3);
+    const chapter = Math.floor(level / 3);
     return {
       id: 'w'+i,
       english: r[0],
-      phonetic: '',           // CSV 无音标，留空
-      chinese: r[1],
-      groupIdx: groupIndex,
-      levelIdx: levelIndex,
-      chapterIdx: chapterIndex,
+      phonetic: '',
+      chinese: r[1] || '',
+      groupIdx: g,
+      levelIdx: level,
+      chapterIdx: chapter,
       learned: false,
       learnedDate: null,
       reviewDates: [],
@@ -169,27 +200,31 @@ function initializeWords(rows){
   });
 }
 
-/* ======= 加载初始词库：优先 localStorage，否则尝试根目录 sample-vocabulary.csv ======= */
+/* ================= 初始加载（优先 localStorage，否则根目录 sample-vocabulary.csv） ================= */
 async function loadInitial(){
-  if(loadState() && allWords.length>0){ renderAll(); return; }
-  try{
+  loadAllState();
+  if(allWords && allWords.length>0){
+    renderAll();
+    return;
+  }
+  try {
     const res = await fetch('sample-vocabulary.csv');
     if(!res.ok) throw new Error('no csv');
     const txt = await res.text();
     const rows = parseCSV(txt);
     initializeWords(rows);
-    saveState();
+    saveAllState();
     renderAll();
   } catch(e){
-    document.getElementById('wordBox').innerHTML = '<div class="muted">未找到 sample-vocabulary.csv，请上传 CSV 文件（标题须为 English,Chinese）进行导入。</div>';
-    updateStats();
+    document.getElementById('wordBox').innerHTML = '<div class="muted">未找到 sample-vocabulary.csv，或读取失败。请到“上传词库”导入 CSV（标题 English,Chinese）。</div>';
+    renderAll();
   }
 }
 
-/* ======= 渲染学习页 ======= */
+/* ================= 渲染学习页 ================= */
 function renderLearn(){
   const box = document.getElementById('wordBox');
-  if(allWords.length === 0){
+  if(!allWords || allWords.length === 0){
     box.innerHTML = '<div class="muted">词库为空，请上传 CSV。</div>';
     updateStats();
     updateProgressBar();
@@ -197,18 +232,19 @@ function renderLearn(){
   }
   const start = groupIdx * GROUP_SIZE;
   const group = allWords.slice(start, start + GROUP_SIZE);
-  if(group.length === 0){
+  if(!group || group.length === 0){
     box.innerHTML = '<div class="muted">已到末尾，没有更多组。</div>';
     updateStats();
     updateProgressBar();
     return;
   }
   let html = `<div class="small">章节: 第 ${group[0].chapterIdx+1} 章 · 关卡: 第 ${group[0].levelIdx+1} 关 · 组: 第 ${group[0].groupIdx+1}</div>`;
-  group.forEach(w => {
+  group.forEach(w=>{
     html += `<div class="wordItem">
-      <strong style="font-size:18px">${escapeHtml(w.english)}</strong> <span class="small" style="margin-left:8px">${escapeHtml(w.phonetic||'')}</span><br>
-      <span class="muted">${escapeHtml(w.chinese)}</span>
-      <div class="small" style="margin-top:6px">状态: ${w.learned?('已学 ('+w.testsPassed+' 轮)'):'未学'}</div>
+      <strong style="font-size:18px">${esc(w.english)}</strong>
+      <span class="small" style="margin-left:8px">${esc(w.phonetic||'')}</span><br>
+      <span class="muted">${esc(w.chinese)}</span>
+      <div class="small" style="margin-top:6px">状态: ${w.learned?('<span class="badge ok">已学</span>'):'<span class="badge">未学</span>'}</div>
     </div>`;
   });
   box.innerHTML = html;
@@ -216,50 +252,67 @@ function renderLearn(){
   updateProgressBar();
 }
 
-/* ======= updateProgressBar: 必需函数（修复缺失错误） ======= */
+/* ================= 进度条 ================= */
 function updateProgressBar(){
   const total = allWords.length;
-  const learned = allWords.filter(w => w.learned).length;
-  const percent = total === 0 ? 0 : Math.round(learned / total * 100);
+  const learned = allWords.filter(w=>w.learned).length;
+  const pct = total===0 ? 0 : Math.round(learned / total * 100);
   const el = document.getElementById('progressInner');
-  if(el) el.style.width = percent + '%';
+  if(el) el.style.width = pct + '%';
 }
 
-/* HTML 转义简单函数 */
-function escapeHtml(s){
-  if(!s) return '';
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+/* ================= 分页 ================= */
+function prevGroup(){ if(groupIdx>0) groupIdx--; renderLearn(); }
+function nextGroup(){ const max = Math.ceil(allWords.length / GROUP_SIZE) - 1; if(groupIdx < max) groupIdx++; renderLearn(); }
+
+/* ================= 完成学习（手动） ================= */
+function markGroupLearned(){
+  if(!allWords || allWords.length===0) return alert('词库为空');
+  const start = groupIdx * GROUP_SIZE;
+  const group = allWords.slice(start, start + GROUP_SIZE);
+  if(group.length===0) return alert('本组没有单词');
+  const today = formatDate(new Date());
+  let newly = 0;
+  group.forEach(w=>{
+    if(!w.learned){
+      w.learned = true;
+      w.learnedDate = today;
+      w.reviewDates = REVIEW_DAYS.map(d => formatDate(addDays(new Date(), d)));
+      w.reviewDone = [];
+      newly++;
+    }
+  });
+  dailyStats[today] = dailyStats[today] || { learned: 0 };
+  dailyStats[today].learned = (dailyStats[today].learned || 0) + newly;
+  saveAllState();
+  alert(`本组标记为已学：共 ${newly} 个新单词（如果本组之前已学过则不会重复计数）。`);
+  renderAll();
 }
 
-/* ======= 分页控制 ======= */
-function prevGroup(){ if(groupIdx > 0) groupIdx--; renderLearn(); }
-function nextGroup(){ const maxG = Math.ceil(allWords.length / GROUP_SIZE) - 1; if(groupIdx < maxG) groupIdx++; renderLearn(); }
-
-/* ======= 测试（四选一）核心逻辑，避免将答案放入 onclick 字符串 ======= */
+/* ================= 测试（四选一） ================= */
 function startTest(){
   const start = groupIdx * GROUP_SIZE;
   const group = allWords.slice(start, start + GROUP_SIZE);
-  if(group.length === 0) { alert('本组没有单词'); return; }
-  // 构造问题：每个单词一题，选项为 4 个中文（包含正确）
-  const pool = allWords.map(w => w.chinese).filter(Boolean);
+  if(!group || group.length===0) return alert('本组没有单词');
+  const pool = allWords.map(w=>w.chinese).filter(Boolean);
   const questions = group.map(w => {
-    const others = [];
-    // 取最多 3 个干扰项
+    const distract = [];
     let attempts = 0;
-    while(others.length < 3 && attempts < 200){
+    while(distract.length < 3 && attempts < 300){
       const pick = pool[Math.floor(Math.random() * pool.length)];
-      if(pick && pick !== w.chinese && !others.includes(pick)) others.push(pick);
+      if(pick && pick !== w.chinese && !distract.includes(pick)) distract.push(pick);
       attempts++;
     }
-    const opts = [...others, w.chinese].sort(() => Math.random() - 0.5);
+    const opts = [...distract, w.chinese].sort(()=>Math.random()-0.5);
     return { wordObj: w, options: opts, answer: w.chinese };
   });
-  testState = { questions, qIndex: 0, round: (group[0].testsPassed || 0) + 1, correctCount: 0 };
+  testState = { questions, qIndex: 0, round: (group[0].testsPassed || 0) + 1, correctCount: 0, wrongList: [], isRetest: false };
   renderQuestion();
 }
 
 function renderQuestion(){
   if(!testState) return;
+  const area = document.getElementById('testArea');
   if(testState.qIndex >= testState.questions.length){
     // 一轮结束
     const correct = testState.correctCount;
@@ -268,104 +321,148 @@ function renderQuestion(){
     const start = groupIdx * GROUP_SIZE;
     const group = allWords.slice(start, start + GROUP_SIZE);
     group.forEach(w => { if(pass) w.testsPassed = (w.testsPassed || 0) + 1; });
-    saveState();
     const reached = group.every(w => (w.testsPassed || 0) >= 2);
     if(reached){
-      const today = new Date();
+      const today = formatDate(new Date());
       group.forEach(w => {
         if(!w.learned){
           w.learned = true;
-          w.learnedDate = formatDate(today);
-          w.reviewDates = REVIEW_DAYS.map(d => formatDate(addDays(today, d)));
+          w.learnedDate = today;
+          w.reviewDates = REVIEW_DAYS.map(d => formatDate(addDays(new Date(), d)));
           w.reviewDone = [];
+          dailyStats[today] = dailyStats[today] || { learned: 0 };
+          dailyStats[today].learned = (dailyStats[today].learned || 0) + 1;
         }
       });
-      saveState();
     }
-    alert(`本轮结束：正确 ${correct}/${total} 。${pass ? '本轮通过。' : '本轮未通过。'}${reached ? ' 本组通过全部轮次，已生成复习计划。' : ''}`);
+    // 错题处理：把当前轮错题加入错题本
+    const wrongs = testState.wrongList || [];
+    wrongs.forEach(w => {
+      if(!wrongBook[w.id]) wrongBook[w.id] = { id: w.id, english: w.english, chinese: w.chinese, consecutiveCorrect: 0 };
+    });
+    saveAllState();
+    // 弹出结果并询问是否复测错题
+    const msg = `本轮结束：正确 ${correct}/${total}。${pass ? '本轮通过。' : '本轮未通过。'}${reached ? ' 本组已通过全部轮次并生成复习计划。' : ''}`;
+    if(wrongs.length > 0){
+      if(confirm(msg + `\n\n你有 ${wrongs.length} 道错题，已加入错题本。是否现在复测这些错题？（选择“取消”可稍后在“错题本”中复习）`)){
+        // 构造错题测试
+        testState = { questions: wrongs.map(w => ({ wordObj: w, options: makeOptionsFor(w), answer: w.chinese })), qIndex: 0, round: 1, correctCount: 0, wrongList: [], isRetest: true };
+        renderQuestion();
+        return;
+      } else {
+        alert(msg + '\n\n错题已加入错题本，可在「错题本」中复习。');
+      }
+    } else {
+      alert(msg);
+    }
     testState = null;
-    document.getElementById('testArea').innerHTML = '';
-    renderLearn();
+    area.innerHTML = '';
+    saveAllState();
+    renderAll();
     return;
   }
 
+  // 显示当前题
   const q = testState.questions[testState.qIndex];
-  const area = document.getElementById('testArea');
-  let html = `<div class="testArea">
-    <div style="display:flex;justify-content:space-between;align-items:center">
-      <div><strong>第 ${testState.qIndex + 1}/${testState.questions.length}</strong> · 第 ${testState.round} 轮</div>
-      <div><button class="btn" onclick="endTestEarly()">结束测试</button></div>
+  let html = `<div class="testArea"><div style="display:flex;justify-content:space-between;align-items:center">
+    <div><strong>第 ${testState.qIndex + 1}/${testState.questions.length}</strong> · 第 ${testState.round} 轮</div>
+    <div><button class="btn" onclick="endTestEarly()">结束测试</button></div>
     </div><hr>
-    <div style="font-size:18px;margin-bottom:8px"><strong>${escapeHtml(q.wordObj.english)}</strong> <span class="muted">${escapeHtml(q.wordObj.phonetic||'')}</span></div>
+    <div style="font-size:18px;margin-bottom:8px"><strong>${esc(q.wordObj.english)}</strong> <span class="muted">${esc(q.wordObj.phonetic||'')}</span></div>
     <div id="choicesArea">`;
   q.options.forEach(opt => {
-    // 使用 data-answer 存正确答案（安全），并将显示文本作为 innerText
-    html += `<div class="choice" data-answer="${escapeAttr(q.answer)}">${escapeHtml(opt)}</div>`;
+    html += `<div class="choice" data-answer="${escapeAttr(q.answer)}">${esc(opt)}</div>`;
   });
   html += `</div></div>`;
   area.innerHTML = html;
 
-  // 绑定事件监听（确保点击有效）
+  // 绑定事件监听
   const choiceEls = document.querySelectorAll('#choicesArea .choice');
-  choiceEls.forEach(ch => {
-    ch.addEventListener('click', () => { handleChoiceClick(ch); });
-  });
+  choiceEls.forEach(ch => ch.addEventListener('click', ()=> handleChoiceClick(ch, q)));
 }
 
-function escapeAttr(s){
-  if(!s) return '';
-  return s.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,"&#39;").replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
+function escapeAttr(s){ if(!s) return ''; return (''+s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,"&#39;").replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-function handleChoiceClick(el){
+function handleChoiceClick(el, q){
   if(!testState) return;
   const correctAnswer = el.getAttribute('data-answer') || '';
   const user = el.innerText.trim();
-  const parent = el.parentElement;
-  const choices = parent.querySelectorAll('.choice');
-  choices.forEach(ch => {
-    // 灰掉后续点击
-    ch.style.pointerEvents = 'none';
-    const isCorrect = (ch.getAttribute('data-answer') === correctAnswer);
-    ch.classList.remove('correct','wrong');
-    if(isCorrect) ch.classList.add('correct');
-    if(ch === el && ch.innerText.trim() !== correctAnswer) ch.classList.add('wrong');
-  });
-  if(user === correctAnswer) testState.correctCount++;
+  const choices = el.parentElement.querySelectorAll('.choice');
+  choices.forEach(ch => { ch.style.pointerEvents = 'none'; ch.classList.remove('correct','wrong'); if(ch.getAttribute('data-answer') === correctAnswer) ch.classList.add('correct'); if(ch === el && ch.innerText.trim() !== correctAnswer) ch.classList.add('wrong'); });
+  if(user === correctAnswer){
+    testState.correctCount++;
+    // 重测时，更新错题本连续正确计数
+    if(testState.isRetest){
+      const id = q.wordObj.id;
+      wrongBook[id] = wrongBook[id] || { id, english: q.wordObj.english, chinese: q.wordObj.chinese, consecutiveCorrect: 0 };
+      wrongBook[id].consecutiveCorrect = (wrongBook[id].consecutiveCorrect || 0) + 1;
+      if(wrongBook[id].consecutiveCorrect >= 21){
+        delete wrongBook[id];
+      }
+    }
+  } else {
+    // 记录错题（当前轮）
+    testState.wrongList = testState.wrongList || [];
+    testState.wrongList.push({ id: q.wordObj.id, english: q.wordObj.english, chinese: q.wordObj.chinese });
+    // 若为重测，重置该词连续正确计数
+    if(testState.isRetest){
+      const id = q.wordObj.id;
+      wrongBook[id] = wrongBook[id] || { id, english: q.wordObj.english, chinese: q.wordObj.chinese, consecutiveCorrect: 0 };
+      wrongBook[id].consecutiveCorrect = 0;
+    }
+  }
   testState.qIndex++;
-  setTimeout(() => { renderQuestion(); }, 600);
+  setTimeout(()=> renderQuestion(), 700);
 }
 
-function endTestEarly(){ if(confirm('确定要提前结束本次测试吗？')){ testState = null; document.getElementById('testArea').innerHTML = ''; } }
+function endTestEarly(){
+  if(confirm('确定要提前结束本次测试吗？ 未完成的题目不会计入本轮通过判定')) {
+    testState = null;
+    document.getElementById('testArea').innerHTML = '';
+    saveAllState();
+  }
+}
 
-/* ======= 复习任务逻辑 ======= */
-function getDueList(filter = 'today'){
+function makeOptionsFor(word){
+  const pool = allWords.map(w => w.chinese).filter(Boolean);
+  const others = [];
+  let attempts = 0;
+  while(others.length < 3 && attempts < 300){
+    const pick = pool[Math.floor(Math.random()*pool.length)];
+    if(pick && pick !== word.chinese && !others.includes(pick)) others.push(pick);
+    attempts++;
+  }
+  const opts = [...others, word.chinese].sort(()=>Math.random()-0.5);
+  return opts;
+}
+
+/* ================= 复习、通知、错题本 UI ================= */
+function getDueList(filter='today'){
   const today = formatDate(new Date());
   const res = [];
-  allWords.forEach(w => {
+  allWords.forEach(w=>{
     if(!w.learned || !w.reviewDates) return;
-    w.reviewDates.forEach(d => {
+    w.reviewDates.forEach(d=>{
       const done = (w.reviewDone || []).includes(d);
-      if(filter === 'today' && d === today && !done) res.push({ word: w, date: d });
-      if(filter === 'upcoming' && !done) res.push({ word: w, date: d });
+      if(filter==='today' && d===today && !done) res.push({word:w,date:d});
+      if(filter==='upcoming' && !done) res.push({word:w,date:d});
     });
   });
-  res.sort((a,b) => a.date.localeCompare(b.date));
+  res.sort((a,b)=>a.date.localeCompare(b.date));
   return res;
 }
 
-function showDue(which = 'today'){
+function showDue(which='today'){
   const list = getDueList(which);
   const container = document.getElementById('reviewList');
-  if(list.length === 0){ container.innerHTML = '<div class="muted">当前没有需要复习的单词。</div>'; return; }
+  if(list.length===0){ container.innerHTML = '<div class="muted">当前没有需要复习的单词。</div>'; return; }
   const groups = {};
-  list.forEach(item => { groups[item.date] = groups[item.date] || []; groups[item.date].push(item.word); });
+  list.forEach(it => { groups[it.date] = groups[it.date] || []; groups[it.date].push(it.word); });
   let html = '';
   for(const date of Object.keys(groups)){
     html += `<h4>${date}（${groups[date].length}）</h4><table><tr><th>单词</th><th>中文</th><th>操作</th></tr>`;
-    groups[date].forEach(w => {
-      html += `<tr><td>${escapeHtml(w.english)}</td><td>${escapeHtml(w.chinese)}</td>
-        <td><button class="btn" onclick="markReviewed('${w.id}','${date}')">标记已复习</button></td></tr>`;
+    groups[date].forEach(w=>{
+      html += `<tr><td>${esc(w.english)}</td><td>${esc(w.chinese)}</td><td><button class="btn" onclick="markReviewed('${w.id}','${date}')">标记已复习</button></td></tr>`;
     });
     html += `</table>`;
   }
@@ -373,31 +470,63 @@ function showDue(which = 'today'){
 }
 
 function markReviewed(wordId, date){
-  const w = allWords.find(x => x.id === wordId);
+  const w = allWords.find(x=>x.id===wordId);
   if(!w) return;
   w.reviewDone = w.reviewDone || [];
   if(!w.reviewDone.includes(date)) w.reviewDone.push(date);
-  saveState();
+  saveAllState();
   showDue('today');
   updateStats();
 }
 
-/* ======= 浏览器通知 ======= */
 function requestNotificationPermission(){
-  if(!('Notification' in window)) return alert('当前浏览器不支持 Notification API。');
-  Notification.requestPermission().then(p => { alert('通知权限：' + p); });
+  if(!('Notification' in window)) return alert('当前浏览器不支持通知');
+  Notification.requestPermission().then(p => alert('通知权限：' + p));
 }
 function sendTodayNotifications(){
   const list = getDueList('today');
-  if(list.length === 0) return alert('今日没有复习任务。');
+  if(list.length===0) return alert('今日没有复习任务');
   if(Notification.permission !== 'granted'){ if(confirm('尚未授权通知，是否现在授权？')) requestNotificationPermission(); return; }
   const title = `今日复习：${list.length} 个单词`;
-  const body = list.slice(0,6).map(i => i.word.english + ' — ' + i.word.chinese).join('\n');
+  const body = list.slice(0,6).map(i=>i.word.english+' — '+i.word.chinese).join('\n');
   new Notification(title, { body });
   alert('已发送通知（浏览器可能会折叠）。');
 }
 
-/* ======= CSV 上传并导入（覆盖并重置进度） ======= */
+/* ================= 错题本渲染与操作 ================= */
+function renderWrongBook(){
+  const container = document.getElementById('wrongList');
+  const keys = Object.keys(wrongBook || {});
+  if(keys.length === 0){ container.innerHTML = '<div class="muted">错题本为空。</div>'; return; }
+  let html = `<table><tr><th>单词</th><th>中文</th><th>连续正确</th><th>操作</th></tr>`;
+  keys.forEach(k=>{
+    const w = wrongBook[k];
+    html += `<tr><td>${esc(w.english)}</td><td>${esc(w.chinese)}</td><td>${w.consecutiveCorrect || 0}</td>
+      <td>
+        <button class="btn" onclick="retestWrong('${w.id}')">复测</button>
+        <button class="btn danger" onclick="removeWrongManual('${w.id}')">手动移除</button>
+      </td></tr>`;
+  });
+  html += '</table>';
+  container.innerHTML = html;
+}
+
+function retestWrong(wordId){
+  const w = wrongBook[wordId];
+  if(!w) return alert('错题不存在');
+  testState = { questions: [{ wordObj: { id: w.id, english: w.english, chinese: w.chinese }, options: makeOptionsFor({ chinese: w.chinese }), answer: w.chinese }], qIndex: 0, round: 1, correctCount: 0, wrongList: [], isRetest: true };
+  renderQuestion();
+}
+
+function removeWrongManual(wordId){
+  if(confirm('确定手动移除该错题吗？')){
+    delete wrongBook[wordId];
+    saveAllState();
+    renderWrongBook();
+  }
+}
+
+/* ================= CSV 上传 ================= */
 function uploadCSV(){
   const f = document.getElementById('csvFile').files[0];
   if(!f) return alert('请选择 CSV 文件');
@@ -405,70 +534,80 @@ function uploadCSV(){
   reader.onload = function(e){
     const rows = parseCSV(e.target.result);
     if(rows.length === 0) return alert('CSV 解析为空或格式错误');
-    if(!confirm('上传新词库将会重置当前进度，是否继续？')) return;
+    if(!confirm('上传新词库将会覆盖当前词库并重置进度、错题本与按日统计。是否继续？')) return;
     initializeWords(rows);
-    saveState();
+    wrongBook = {};
+    dailyStats = {};
     groupIdx = 0;
+    saveAllState();
     renderAll();
     alert('导入完成！');
   };
   reader.readAsText(f, 'utf-8');
 }
 
-/* ======= 统计 ======= */
+/* ================= 统计页渲染 ================= */
+function renderStatsReport(){
+  const container = document.getElementById('statReport');
+  if(!allWords || allWords.length === 0){
+    container.innerHTML = '<div class="muted">词库为空</div>'; return;
+  }
+  const total = allWords.length;
+  const learned = allWords.filter(w=>w.learned).length;
+  const dueToday = getDueList('today').length;
+  let html = `<div class="small">总词数：<strong>${total}</strong> · 已学：<strong>${learned}</strong> · 今日待复习：<strong>${dueToday}</strong></div>`;
+  html += `<hr><h4>每日学习数量（按日期）</h4>`;
+  const dates = Object.keys(dailyStats).sort().reverse();
+  if(dates.length === 0) html += '<div class="muted">暂无学习记录</div>';
+  else {
+    html += `<table><tr><th>日期</th><th>学词数</th></tr>`;
+    dates.forEach(d => { html += `<tr><td>${d}</td><td>${dailyStats[d].learned || 0}</td></tr>`; });
+    html += `</table>`;
+  }
+  html += `<hr><h4>错题本统计</h4>`;
+  html += `<div class="small">错题总数：<strong>${Object.keys(wrongBook).length}</strong>（需要连续 21 次正确才会移除）</div>`;
+  container.innerHTML = html;
+}
+
+/* ================= 更新统计显示 ================= */
 function updateStats(){
   const total = allWords.length;
-  const learned = allWords.filter(w => w.learned).length;
-  const dueToday = getDueList('today').length;
+  const learned = allWords.filter(w=>w.learned).length;
+  const due = getDueList('today').length;
   document.getElementById('totalWords').innerText = total;
   document.getElementById('learnedWords').innerText = learned;
-  document.getElementById('dueToday').innerText = dueToday;
+  document.getElementById('dueToday').innerText = due;
 }
 
-function renderStatsReport(){
-  if(allWords.length === 0){ document.getElementById('statReport').innerHTML = '<div class="muted">词库为空</div>'; return; }
-  const total = allWords.length;
-  const learned = allWords.filter(w => w.learned).length;
-  const dueToday = getDueList('today').length;
-  const chapters = {};
-  allWords.forEach(w => {
-    const ch = w.chapterIdx || 0;
-    chapters[ch] = chapters[ch] || { total:0, learned:0 };
-    chapters[ch].total++;
-    if(w.learned) chapters[ch].learned++;
-  });
-  let html = `<div class="small">总词数：<strong>${total}</strong> · 已学：<strong>${learned}</strong> · 今日复习：<strong>${dueToday}</strong></div>`;
-  html += `<hr><h4>章节进度</h4><table><tr><th>章</th><th>总词</th><th>已学</th><th>进度</th></tr>`;
-  Object.keys(chapters).sort((a,b)=>a-b).forEach(ch => {
-    const obj = chapters[ch];
-    const pct = Math.round(obj.learned / obj.total * 100);
-    html += `<tr><td>第 ${parseInt(ch)+1} 章</td><td>${obj.total}</td><td>${obj.learned}</td><td>${pct}%</td></tr>`;
-  });
-  html += `</table>`;
-  document.getElementById('statReport').innerHTML = html;
-}
-
-/* ======= 切换标签 ======= */
+/* ================= 切换 Tab ================= */
 function switchTab(tab){
   currentTab = tab;
-  ['learn','review','upload','stats'].forEach(t => {
-    const pane = document.getElementById('pane-' + t);
-    const tabEl = document.getElementById('tab-' + t);
-    if(pane) pane.style.display = (t === tab ? 'block' : 'none');
-    if(tabEl) tabEl.classList.toggle('active', t === tab);
+  ['learn','review','wrong','upload','stats'].forEach(t=>{
+    const pane = document.getElementById('pane-'+t);
+    const tabEl = document.getElementById('tab-'+t);
+    if(pane) pane.style.display = (t===tab ? 'block' : 'none');
+    if(tabEl) tabEl.classList.toggle('active', t===tab);
   });
   if(tab === 'review') showDue('today');
+  if(tab === 'wrong') renderWrongBook();
   if(tab === 'stats') renderStatsReport();
 }
 
-/* ======= 渲染入口 ======= */
-function renderAll(){ renderLearn(); updateStats(); updateProgressBar(); if(currentTab === 'review') showDue('today'); if(currentTab === 'stats') renderStatsReport(); }
+/* ================= 渲染入口 ================= */
+function renderAll(){
+  renderLearn();
+  updateStats();
+  updateProgressBar();
+  if(currentTab === 'review') showDue('today');
+  if(currentTab === 'wrong') renderWrongBook();
+  if(currentTab === 'stats') renderStatsReport();
+}
 
-/* ======= 页面启动 ======= */
-window.addEventListener('load', () => {
+/* ================= 页面启动 ================= */
+window.addEventListener('load', ()=> {
   loadInitial();
-  // 定期刷新统计（防止 localStorage 被更改）
-  setInterval(updateStats, 2000);
+  // 定期刷新统计/错题渲染
+  setInterval(()=>{ updateStats(); if(currentTab==='wrong') renderWrongBook(); }, 2000);
 });
 </script>
 </body>
