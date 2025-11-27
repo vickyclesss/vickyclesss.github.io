@@ -3,39 +3,38 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>单词记忆系统</title>
+<title>单词记忆系统（CSV: English,Chinese）</title>
 <style>
   body { background:#f3f7fa; font-family: "Segoe UI", Tahoma, Arial; color:#222; margin:0; padding:20px; }
-  .wrap{max-width:900px;margin:24px auto;background:#fff;border-radius:10px;padding:20px;box-shadow:0 6px 24px rgba(0,0,0,0.08)}
+  .wrap{max-width:980px;margin:24px auto;background:#fff;border-radius:10px;padding:20px;box-shadow:0 6px 24px rgba(0,0,0,0.08)}
   h1{text-align:center;margin:8px 0 18px}
-  .tabs{display:flex;gap:12px;justify-content:center;margin-bottom:12px}
+  .tabs{display:flex;gap:12px;justify-content:center;margin-bottom:12px;flex-wrap:wrap}
   .tab{padding:8px 14px;border-radius:8px;cursor:pointer;background:#eef6ff;color:#007bff}
   .tab.active{background:#007bff;color:#fff}
-  #wordBox{min-height:180px;padding:16px;border-radius:8px;background:#fafafa;border:1px solid #eee;margin-bottom:12px}
+  #wordBox{min-height:160px;padding:16px;border-radius:8px;background:#fafafa;border:1px solid #eee;margin-bottom:12px}
   .wordItem{padding:10px;border-bottom:1px dashed #eee}
   .controls{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
   .btn{background:#007bff;color:#fff;padding:8px 14px;border:none;border-radius:8px;cursor:pointer}
   .btn.secondary{background:#6c757d}
   .small{font-size:13px;color:#666}
-  .right{float:right}
   .stat{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;margin:12px 0}
   .stat>div{background:#f6fbff;padding:10px;border-radius:8px;border:1px solid #e6f0ff;min-width:120px;text-align:center}
   .uploader{padding:8px;background:#fff;border-radius:8px;border:1px dashed #ddd;display:inline-block}
-  .testArea{padding:12px;background:#fff;border-radius:8px;border:1px solid #eee}
-  .choice{display:block;padding:8px;margin:6px 0;border-radius:6px;border:1px solid #eee;cursor:pointer}
+  .testArea{padding:12px;background:#fff;border-radius:8px;border:1px solid #eee;margin-top:12px}
+  .choice{display:block;padding:10px;margin:8px 0;border-radius:6px;border:1px solid #eee;cursor:pointer;background:#fff}
   .choice.correct{background:#e6ffea;border-color:#8fdd9c}
   .choice.wrong{background:#ffecec;border-color:#ff9a9a}
-  textarea{width:100%;min-height:80px}
-  .progressBar{height:10px;background:#e9f4ff;border-radius:999px;overflow:hidden}
+  .progressBar{height:10px;background:#e9f4ff;border-radius:999px;overflow:hidden;margin:12px 0}
   .progressBarInner{height:100%;background:#007bff;width:0%}
   table{width:100%;border-collapse:collapse}
   th,td{padding:8px;border-bottom:1px solid #eee}
   .muted{color:#888;font-size:13px}
+  .center{display:flex;justify-content:center;align-items:center;gap:8px}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>单词记忆系统</h1>
+  <h1>单词记忆系统（CSV 标题：English,Chinese）</h1>
 
   <div class="tabs">
     <div class="tab active" id="tab-learn" onclick="switchTab('learn')">学习</div>
@@ -53,7 +52,7 @@
         <div><strong id="dueToday">0</strong><div class="small">今日待复习</div></div>
       </div>
 
-      <div class="progressBar" style="margin-bottom:8px"><div id="progressInner" class="progressBarInner"></div></div>
+      <div class="progressBar"><div id="progressInner" class="progressBarInner"></div></div>
 
       <div id="wordBox">正在加载词库……</div>
 
@@ -63,11 +62,14 @@
           <button class="btn" onclick="nextGroup()">下一组</button>
         </div>
         <div>
-          <button class="btn" onclick="startTest()" id="startTestBtn">开始测试（当前组）</button>
+          <button class="btn" id="startTestBtn" onclick="startTest()">开始测试（当前组）</button>
           <button class="btn secondary" onclick="requestNotificationPermission()">启用通知</button>
         </div>
       </div>
-      <div class="small" style="margin-top:8px">说明：每组 5 个单词，需要通过 <strong>两轮测试</strong>（每轮随机出题）才算该组学完并生成复习计划。</div>
+
+      <div class="small" style="margin-top:8px">说明：每组 5 个单词，需要通过 <strong>两轮测试</strong>（每轮随机出题）才算该组学完并生成复习计划（复习天：1,2,3,5,7,9,12,14,17,21）。</div>
+
+      <div id="testArea"></div>
     </div>
 
     <!-- 复习 -->
@@ -88,13 +90,13 @@
     <!-- 上传 -->
     <div id="pane-upload" style="display:none">
       <h3>上传词库（CSV）</h3>
-      <div class="uploader">
+      <div class="uploader center">
         <input type="file" id="csvFile" accept=".csv" />
         <button class="btn" onclick="uploadCSV()">上传并导入</button>
       </div>
       <div style="margin-top:12px">
-        <p class="muted">CSV 格式说明：每行三列，顺序为 <code>english,phonetic,chinese</code>。首行可为标题并会自动忽略。</p>
-        <p class="muted">提示：上传新词库会重置当前进度（可先导出备份）。</p>
+        <p class="muted">CSV 格式说明：第一行为标题，必须为 <code>English,Chinese</code>（不区分大小写）。每行示例：<code>apple,苹果</code></p>
+        <p class="muted">上传新词库会重置当前进度（若需保留，请先导出备份）。</p>
       </div>
     </div>
 
@@ -104,93 +106,73 @@
       <div id="statReport">加载中……</div>
     </div>
   </div>
-
-  <!-- 测试弹窗区域（动态替换） -->
-  <div id="testArea" style="margin-top:16px"></div>
 </div>
 
 <script>
-/* -------------------------
-   全局状态与配置
-   -------------------------*/
-const REVIEW_DAYS = [1,2,3,5,7,9,12,14,17,21]; // 复习日
-const GROUP_SIZE = 5;  // 每组 5 个单词
-let allWords = [];     // 每项为 {id,english,phonetic,chinese,groupIdx,levelIdx,chapterIdx, learned:false, learnedDate:null, reviewDates:[], reviewDone:[] , testsPassed:0}
-let groupIdx = 0;      // 当前看到的组索引
+/* ================= 配置 ================= */
+const REVIEW_DAYS = [1,2,3,5,7,9,12,14,17,21];
+const GROUP_SIZE = 5; // 每页/组 5 个
+let allWords = [];   // 单词数据结构数组
+let groupIdx = 0;
 let currentTab = 'learn';
+let testState = null;
 
-/* -------------------------
-   工具函数：日期处理
-   -------------------------*/
-function formatDate(d) {
-  const y=d.getFullYear(), m=(d.getMonth()+1).toString().padStart(2,'0'), day=d.getDate().toString().padStart(2,'0');
-  return `${y}-${m}-${day}`;
-}
-function addDays(baseDate, n) {
-  const d=new Date(baseDate);
-  d.setDate(d.getDate()+n);
-  return d;
-}
+/* ======= 日期工具 ======= */
+function formatDate(d){ const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), dd=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${dd}`; }
+function addDays(baseDate, n){ const d=new Date(baseDate); d.setDate(d.getDate()+n); return d; }
 
-/* -------------------------
-   本地存储：读写
-   -------------------------*/
-const STORAGE_KEY = 'vocab_system_v1';
-function saveState(){
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({allWords}));
-}
-function loadState(){
-  const raw = localStorage.getItem(STORAGE_KEY);
-  if (!raw) return false;
-  try{
-    const obj = JSON.parse(raw);
-    allWords = obj.allWords || [];
-    return true;
-  }catch(e){
-    console.error(e);
-    return false;
-  }
-}
+/* ======= 本地存储 ======= */
+const STORAGE_KEY = 'vocab_system_csv_v1';
+function saveState(){ localStorage.setItem(STORAGE_KEY, JSON.stringify({allWords})); }
+function loadState(){ const raw = localStorage.getItem(STORAGE_KEY); if(!raw) return false; try{ const obj = JSON.parse(raw); allWords = obj.allWords || []; return true; } catch(e){ console.error(e); return false; } }
 
-/* -------------------------
-   CSV 解析（简单、安全）
-   支持首行标题，可处理空行
-   -------------------------*/
-function parseCSV(text) {
+/* ======= CSV 解析 (有标题 English,Chinese) ======= */
+function parseCSV(text){
   const lines = text.split(/\r?\n/).map(l=>l.trim()).filter(l=>l.length>0);
-  if (lines.length===0) return [];
-  const rows = [];
-  for(let i=0;i<lines.length;i++){
-    // 简单按逗号分割（不支持带逗号的字段）
-    const cols = lines[i].split(',').map(c=>c.trim());
-    rows.push(cols);
-  }
-  // 如果第一行看起来像标题（包含英文单词或 "english"），跳过
-  const first = rows[0].map(c=>c.toLowerCase());
-  if (first.includes('english') || first.includes('word') || first.includes('chinese') || first.includes('phonetic')) {
-    rows.shift();
-  }
-  // 保持 3 列格式，若少于 3 列补空
-  return rows.map(cols => {
-    const e = cols[0]||'';
-    const p = cols[1]||'';
-    const c = cols[2]||'';
-    return [e,p,c];
-  }).filter(r=>r[0]); // 保证有英文单词
+  if(lines.length===0) return [];
+  // 解析每行，用第一个逗号分割（避免简单场景中多余逗号）
+  const rows = lines.map(line => {
+    // 尝试更稳妥的分割：把第一列到第一个逗号，剩下为第二列
+    const idx = line.indexOf(',');
+    if(idx === -1) return [line.trim(), ''];
+    const a = line.slice(0, idx).trim();
+    const b = line.slice(idx+1).trim();
+    return [a,b];
+  });
+  // 判断并移除标题行（检查第一行是否包含 english 或 chinese）
+  const header = rows[0].map(c=> (c||'').toString().toLowerCase() );
+  if(header.includes('english') && header.includes('chinese')) rows.shift();
+  // 返回规范二维数组 [english, chinese]
+  return rows.map(r => [r[0]||'', r[1]||'']).filter(r => r[0]);
 }
 
-/* -------------------------
-   载入默认 CSV（仓库根的 sample-vocabulary.csv）
-   或者从 localStorage 恢复
-   -------------------------*/
+/* ======= 初始化单词数组并分组/关/章 ======= */
+function initializeWords(rows){
+  allWords = rows.map((r,i) => {
+    const groupIndex = Math.floor(i / GROUP_SIZE);
+    const levelIndex = Math.floor(groupIndex / 3);      // 3 组 = 1 关
+    const chapterIndex = Math.floor(levelIndex / 3);    // 3 关 = 1 章
+    return {
+      id: 'w'+i,
+      english: r[0],
+      phonetic: '',           // CSV 无音标，留空
+      chinese: r[1],
+      groupIdx: groupIndex,
+      levelIdx: levelIndex,
+      chapterIdx: chapterIndex,
+      learned: false,
+      learnedDate: null,
+      reviewDates: [],
+      reviewDone: [],
+      testsPassed: 0
+    };
+  });
+}
+
+/* ======= 加载初始词库：优先 localStorage，否则尝试根目录 sample-vocabulary.csv ======= */
 async function loadInitial(){
-  // 优先从 localStorage 恢复
-  if (loadState() && allWords.length>0){
-    renderAll();
-    return;
-  }
-  // 否则尝试 fetch 根目录 CSV
-  try {
+  if(loadState() && allWords.length>0){ renderAll(); return; }
+  try{
     const res = await fetch('sample-vocabulary.csv');
     if(!res.ok) throw new Error('no csv');
     const txt = await res.text();
@@ -198,62 +180,34 @@ async function loadInitial(){
     initializeWords(rows);
     saveState();
     renderAll();
-  } catch(err) {
-    // 没有 CSV 时，显示空提示
-    document.getElementById('wordBox').innerHTML = '<div class="muted">仓库未包含 sample-vocabulary.csv 或读取失败，请使用上传功能导入词库。</div>';
+  } catch(e){
+    document.getElementById('wordBox').innerHTML = '<div class="muted">未找到 sample-vocabulary.csv，请上传 CSV 文件（标题须为 English,Chinese）进行导入。</div>';
     updateStats();
   }
 }
 
-/* -------------------------
-   初始化单词数组，分组/关/章
-   -------------------------*/
-function initializeWords(rows){
-  allWords = rows.map((r,i)=>{
-    const id = 'w'+i;
-    const groupIndex = Math.floor(i/GROUP_SIZE);
-    const levelIndex = Math.floor(groupIndex/3);
-    const chapterIndex = Math.floor(levelIndex/3);
-    return {
-      id,
-      english: r[0],
-      phonetic: r[1],
-      chinese: r[2],
-      groupIdx: groupIndex,
-      levelIdx: levelIndex,
-      chapterIdx: chapterIndex,
-      learned:false,
-      learnedDate:null,
-      reviewDates:[],
-      reviewDone:[],
-      testsPassed:0
-    };
-  });
-}
-
-/* -------------------------
-   渲染视图：学习页
-   -------------------------*/
+/* ======= 渲染学习页 ======= */
 function renderLearn(){
   const box = document.getElementById('wordBox');
-  if (allWords.length===0) {
+  if(allWords.length === 0){
     box.innerHTML = '<div class="muted">词库为空，请上传 CSV。</div>';
     updateStats();
+    updateProgressBar();
     return;
   }
   const start = groupIdx * GROUP_SIZE;
-  const group = allWords.slice(start, start+GROUP_SIZE);
-  if (group.length===0){
+  const group = allWords.slice(start, start + GROUP_SIZE);
+  if(group.length === 0){
     box.innerHTML = '<div class="muted">已到末尾，没有更多组。</div>';
     updateStats();
+    updateProgressBar();
     return;
   }
-  let html = '';
-  html += `<div class="small">章节: 第 ${group[0].chapterIdx+1} 章 · 关卡: 第 ${group[0].levelIdx+1} 关 · 组: 第 ${group[0].groupIdx+1}</div>`;
-  group.forEach(w=>{
+  let html = `<div class="small">章节: 第 ${group[0].chapterIdx+1} 章 · 关卡: 第 ${group[0].levelIdx+1} 关 · 组: 第 ${group[0].groupIdx+1}</div>`;
+  group.forEach(w => {
     html += `<div class="wordItem">
-      <strong style="font-size:18px">${w.english}</strong> <span class="small" style="margin-left:8px">${w.phonetic}</span><br>
-      <span class="muted">${w.chinese}</span>
+      <strong style="font-size:18px">${escapeHtml(w.english)}</strong> <span class="small" style="margin-left:8px">${escapeHtml(w.phonetic||'')}</span><br>
+      <span class="muted">${escapeHtml(w.chinese)}</span>
       <div class="small" style="margin-top:6px">状态: ${w.learned?('已学 ('+w.testsPassed+' 轮)'):'未学'}</div>
     </div>`;
   });
@@ -262,166 +216,155 @@ function renderLearn(){
   updateProgressBar();
 }
 
-/* -------------------------
-   分页控制
-   -------------------------*/
-function prevGroup(){
-  if (groupIdx>0) groupIdx--;
-  renderLearn();
-}
-function nextGroup(){
-  const maxGroup = Math.ceil(allWords.length / GROUP_SIZE) - 1;
-  if (groupIdx < maxGroup) groupIdx++;
-  renderLearn();
+/* ======= updateProgressBar: 必需函数（修复缺失错误） ======= */
+function updateProgressBar(){
+  const total = allWords.length;
+  const learned = allWords.filter(w => w.learned).length;
+  const percent = total === 0 ? 0 : Math.round(learned / total * 100);
+  const el = document.getElementById('progressInner');
+  if(el) el.style.width = percent + '%';
 }
 
-/* -------------------------
-   测试流程（两轮）
-   - startTest() 启动当前组测试（生成题目）
-   - 每轮完成后 testsPassed++
-   - testsPassed >= 2 => 该组学完，设置 learned + 生成复习计划
-   -------------------------*/
-let testState = null;
+/* HTML 转义简单函数 */
+function escapeHtml(s){
+  if(!s) return '';
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+/* ======= 分页控制 ======= */
+function prevGroup(){ if(groupIdx > 0) groupIdx--; renderLearn(); }
+function nextGroup(){ const maxG = Math.ceil(allWords.length / GROUP_SIZE) - 1; if(groupIdx < maxG) groupIdx++; renderLearn(); }
+
+/* ======= 测试（四选一）核心逻辑，避免将答案放入 onclick 字符串 ======= */
 function startTest(){
-  const start = groupIdx*GROUP_SIZE;
-  const group = allWords.slice(start, start+GROUP_SIZE);
-  if (group.length===0) return alert('本组没有单词');
-  // 构建题库：每题为当前单词，选项为 4 个（含一个正确）
-  const pool = allWords.map(w=>w.chinese);
-  const questions = group.map(w=>{
-    // 随机取 3 个干扰项
-    const otherOptions = [];
-    while(otherOptions.length<3 && pool.length>0){
-      const pick = pool[Math.floor(Math.random()*pool.length)];
-      if (pick!==w.chinese && !otherOptions.includes(pick)) otherOptions.push(pick);
-      if (otherOptions.length>20) break;
+  const start = groupIdx * GROUP_SIZE;
+  const group = allWords.slice(start, start + GROUP_SIZE);
+  if(group.length === 0) { alert('本组没有单词'); return; }
+  // 构造问题：每个单词一题，选项为 4 个中文（包含正确）
+  const pool = allWords.map(w => w.chinese).filter(Boolean);
+  const questions = group.map(w => {
+    const others = [];
+    // 取最多 3 个干扰项
+    let attempts = 0;
+    while(others.length < 3 && attempts < 200){
+      const pick = pool[Math.floor(Math.random() * pool.length)];
+      if(pick && pick !== w.chinese && !others.includes(pick)) others.push(pick);
+      attempts++;
     }
-    const opts = [...otherOptions, w.chinese].sort(()=>Math.random()-0.5);
-    return {wordObj:w, options:opts, answer:w.chinese};
+    const opts = [...others, w.chinese].sort(() => Math.random() - 0.5);
+    return { wordObj: w, options: opts, answer: w.chinese };
   });
-  testState = {
-    questions,
-    qIndex:0,
-    round: (group[0].testsPassed || 0) + 1, // 下一轮
-    correctCount:0
-  };
-  showQuestion();
+  testState = { questions, qIndex: 0, round: (group[0].testsPassed || 0) + 1, correctCount: 0 };
+  renderQuestion();
 }
 
-function showQuestion(){
-  if (!testState) return;
-  if (testState.qIndex >= testState.questions.length){
-    // 本轮结束
+function renderQuestion(){
+  if(!testState) return;
+  if(testState.qIndex >= testState.questions.length){
+    // 一轮结束
     const correct = testState.correctCount;
     const total = testState.questions.length;
-    // 将本组所有单词的 testsPassed++（按是否通过决定，要求通过率 >=60% 认定通过本轮）
-    const pass = (correct/total) >= 0.6;
-    const start = groupIdx*GROUP_SIZE;
-    const group = allWords.slice(start, start+GROUP_SIZE);
-    group.forEach(w=>{
-      if (pass) {
-        w.testsPassed = (w.testsPassed||0) + 1;
-      }
-    });
+    const pass = (correct / total) >= 0.6;
+    const start = groupIdx * GROUP_SIZE;
+    const group = allWords.slice(start, start + GROUP_SIZE);
+    group.forEach(w => { if(pass) w.testsPassed = (w.testsPassed || 0) + 1; });
     saveState();
-    // 如果达到 2 轮，则学完该组并生成复习计划
-    const reached = group.every(w => (w.testsPassed||0) >=2);
-    const msg = `本轮结束：正确 ${correct}/${total} 。${pass? '本轮通过。':'本轮未通过。'}${reached? ' 本组通过全部轮次，已生成复习计划。':''}`;
-    alert(msg);
-    // 如果本组被学完，生成复习计划（以今天为 learnedDate）
-    if (reached) {
+    const reached = group.every(w => (w.testsPassed || 0) >= 2);
+    if(reached){
       const today = new Date();
-      group.forEach(w=>{
-        if (!w.learned){
+      group.forEach(w => {
+        if(!w.learned){
           w.learned = true;
           w.learnedDate = formatDate(today);
-          // 生成 reviewDates
           w.reviewDates = REVIEW_DAYS.map(d => formatDate(addDays(today, d)));
           w.reviewDone = [];
         }
       });
       saveState();
     }
+    alert(`本轮结束：正确 ${correct}/${total} 。${pass ? '本轮通过。' : '本轮未通过。'}${reached ? ' 本组通过全部轮次，已生成复习计划。' : ''}`);
     testState = null;
+    document.getElementById('testArea').innerHTML = '';
     renderLearn();
     return;
   }
-  // 显示当前问题
+
   const q = testState.questions[testState.qIndex];
   const area = document.getElementById('testArea');
-  let html = `<div class="testArea"><div style="display:flex;justify-content:space-between;align-items:center">
-    <div><strong>第 ${testState.qIndex+1}/${testState.questions.length}</strong> · 第 ${testState.round} 轮</div>
-    <div><button class="btn" onclick="endTestEarly()">结束测试</button></div>
-    </div>
-    <hr>
-    <div style="font-size:18px;margin-bottom:8px"><strong>${q.wordObj.english}</strong> <span class="muted">${q.wordObj.phonetic||''}</span></div>
-    `;
-  q.options.forEach(opt=>{
-    html += `<div class="choice" onclick="chooseOption(this, ${JSON.stringify(q.answer)})">${opt}</div>`;
+  let html = `<div class="testArea">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div><strong>第 ${testState.qIndex + 1}/${testState.questions.length}</strong> · 第 ${testState.round} 轮</div>
+      <div><button class="btn" onclick="endTestEarly()">结束测试</button></div>
+    </div><hr>
+    <div style="font-size:18px;margin-bottom:8px"><strong>${escapeHtml(q.wordObj.english)}</strong> <span class="muted">${escapeHtml(q.wordObj.phonetic||'')}</span></div>
+    <div id="choicesArea">`;
+  q.options.forEach(opt => {
+    // 使用 data-answer 存正确答案（安全），并将显示文本作为 innerText
+    html += `<div class="choice" data-answer="${escapeAttr(q.answer)}">${escapeHtml(opt)}</div>`;
   });
-  html += `</div>`;
+  html += `</div></div>`;
   area.innerHTML = html;
-}
 
-/* 选项选择处理 */
-function chooseOption(el, correctAnswer){
-  const user = el.innerText;
-  const area = el.parentElement.parentElement;
-  // mark
-  area.querySelectorAll('.choice').forEach(ch=>{
-    ch.classList.remove('correct','wrong');
-    if (ch.innerText === correctAnswer) ch.classList.add('correct');
-    if (ch === el && ch.innerText !== correctAnswer) ch.classList.add('wrong');
-    ch.onclick = null;
+  // 绑定事件监听（确保点击有效）
+  const choiceEls = document.querySelectorAll('#choicesArea .choice');
+  choiceEls.forEach(ch => {
+    ch.addEventListener('click', () => { handleChoiceClick(ch); });
   });
-  if (user === correctAnswer) testState.correctCount++;
-  testState.qIndex++;
-  // 延迟 600ms 显示下一题
-  setTimeout(()=> showQuestion(), 600);
-}
-function endTestEarly(){
-  if (confirm('确定要提前结束本次测试吗？')) {
-    testState = null;
-    document.getElementById('testArea').innerHTML = '';
-  }
 }
 
-/* -------------------------
-   复习任务与通知
-   -------------------------*/
-function getDueList(filter='today'){
+function escapeAttr(s){
+  if(!s) return '';
+  return s.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,"&#39;").replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function handleChoiceClick(el){
+  if(!testState) return;
+  const correctAnswer = el.getAttribute('data-answer') || '';
+  const user = el.innerText.trim();
+  const parent = el.parentElement;
+  const choices = parent.querySelectorAll('.choice');
+  choices.forEach(ch => {
+    // 灰掉后续点击
+    ch.style.pointerEvents = 'none';
+    const isCorrect = (ch.getAttribute('data-answer') === correctAnswer);
+    ch.classList.remove('correct','wrong');
+    if(isCorrect) ch.classList.add('correct');
+    if(ch === el && ch.innerText.trim() !== correctAnswer) ch.classList.add('wrong');
+  });
+  if(user === correctAnswer) testState.correctCount++;
+  testState.qIndex++;
+  setTimeout(() => { renderQuestion(); }, 600);
+}
+
+function endTestEarly(){ if(confirm('确定要提前结束本次测试吗？')){ testState = null; document.getElementById('testArea').innerHTML = ''; } }
+
+/* ======= 复习任务逻辑 ======= */
+function getDueList(filter = 'today'){
   const today = formatDate(new Date());
-  const list = [];
-  allWords.forEach(w=>{
-    if (!w.learned || !w.reviewDates) return;
-    w.reviewDates.forEach(d=>{
-      const done = (w.reviewDone||[]).includes(d);
-      if (filter==='today' && d===today && !done) list.push({word:w, date:d});
-      if (filter==='upcoming' && !done) list.push({word:w, date:d});
+  const res = [];
+  allWords.forEach(w => {
+    if(!w.learned || !w.reviewDates) return;
+    w.reviewDates.forEach(d => {
+      const done = (w.reviewDone || []).includes(d);
+      if(filter === 'today' && d === today && !done) res.push({ word: w, date: d });
+      if(filter === 'upcoming' && !done) res.push({ word: w, date: d });
     });
   });
-  // 合并同一 word 的多条（理论上不会）并排序
-  list.sort((a,b)=>a.date.localeCompare(b.date));
-  return list;
+  res.sort((a,b) => a.date.localeCompare(b.date));
+  return res;
 }
-function showDue(which='today'){
+
+function showDue(which = 'today'){
   const list = getDueList(which);
   const container = document.getElementById('reviewList');
-  if (list.length===0) {
-    container.innerHTML = '<div class="muted">当前没有需要复习的单词。</div>';
-    return;
-  }
-  // 按日期分组
+  if(list.length === 0){ container.innerHTML = '<div class="muted">当前没有需要复习的单词。</div>'; return; }
   const groups = {};
-  list.forEach(item=>{
-    groups[item.date] = groups[item.date]||[];
-    groups[item.date].push(item.word);
-  });
+  list.forEach(item => { groups[item.date] = groups[item.date] || []; groups[item.date].push(item.word); });
   let html = '';
-  for (const date of Object.keys(groups)){
-    html += `<h4>${date}（${groups[date].length}）</h4><table><tr><th>单词</th><th>音标</th><th>中文</th><th>操作</th></tr>`;
-    groups[date].forEach(w=>{
-      html += `<tr><td>${w.english}</td><td>${w.phonetic||''}</td><td>${w.chinese}</td>
+  for(const date of Object.keys(groups)){
+    html += `<h4>${date}（${groups[date].length}）</h4><table><tr><th>单词</th><th>中文</th><th>操作</th></tr>`;
+    groups[date].forEach(w => {
+      html += `<tr><td>${escapeHtml(w.english)}</td><td>${escapeHtml(w.chinese)}</td>
         <td><button class="btn" onclick="markReviewed('${w.id}','${date}')">标记已复习</button></td></tr>`;
     });
     html += `</table>`;
@@ -429,132 +372,102 @@ function showDue(which='today'){
   container.innerHTML = html;
 }
 
-/* 标记已复习 */
 function markReviewed(wordId, date){
-  const w = allWords.find(x=>x.id===wordId);
-  if (!w) return;
+  const w = allWords.find(x => x.id === wordId);
+  if(!w) return;
   w.reviewDone = w.reviewDone || [];
-  if (!w.reviewDone.includes(date)) w.reviewDone.push(date);
+  if(!w.reviewDone.includes(date)) w.reviewDone.push(date);
   saveState();
   showDue('today');
   updateStats();
 }
 
-/* 通知权限 */
+/* ======= 浏览器通知 ======= */
 function requestNotificationPermission(){
-  if (!('Notification' in window)) return alert('当前浏览器不支持 Notification API。');
-  Notification.requestPermission().then(p=>{
-    alert('通知权限：' + p);
-  });
+  if(!('Notification' in window)) return alert('当前浏览器不支持 Notification API。');
+  Notification.requestPermission().then(p => { alert('通知权限：' + p); });
 }
-
-/* 发送今日复习通知（仅当获得权限） */
 function sendTodayNotifications(){
   const list = getDueList('today');
-  if (list.length===0) return alert('今日没有复习任务。');
-  if (Notification.permission !== 'granted'){
-    if (confirm('尚未授权通知，是否现在授权？')) requestNotificationPermission();
-    return;
-  }
-  // 聚合标题
+  if(list.length === 0) return alert('今日没有复习任务。');
+  if(Notification.permission !== 'granted'){ if(confirm('尚未授权通知，是否现在授权？')) requestNotificationPermission(); return; }
   const title = `今日复习：${list.length} 个单词`;
-  const body = list.slice(0,6).map(i=>i.word.english + ' — ' + i.word.chinese).join('\n');
-  new Notification(title, {body});
-  alert('已发送通知（浏览器可能会将其折叠）。');
+  const body = list.slice(0,6).map(i => i.word.english + ' — ' + i.word.chinese).join('\n');
+  new Notification(title, { body });
+  alert('已发送通知（浏览器可能会折叠）。');
 }
 
-/* -------------------------
-   上传 CSV 并导入（替换现有词库并重置进度）
-   -------------------------*/
+/* ======= CSV 上传并导入（覆盖并重置进度） ======= */
 function uploadCSV(){
   const f = document.getElementById('csvFile').files[0];
-  if (!f) return alert('请选择 CSV 文件');
+  if(!f) return alert('请选择 CSV 文件');
   const reader = new FileReader();
   reader.onload = function(e){
     const rows = parseCSV(e.target.result);
-    if (rows.length===0) return alert('CSV 解析为空或格式错误');
-    if (!confirm('上传新词库将会重置当前进度，是否继续？')) return;
+    if(rows.length === 0) return alert('CSV 解析为空或格式错误');
+    if(!confirm('上传新词库将会重置当前进度，是否继续？')) return;
     initializeWords(rows);
     saveState();
-    groupIdx=0;
+    groupIdx = 0;
     renderAll();
     alert('导入完成！');
   };
-  reader.readAsText(f,'utf-8');
+  reader.readAsText(f, 'utf-8');
 }
 
-/* -------------------------
-   统计生成
-   -------------------------*/
+/* ======= 统计 ======= */
 function updateStats(){
   const total = allWords.length;
-  const learned = allWords.filter(w=>w.learned).length;
+  const learned = allWords.filter(w => w.learned).length;
   const dueToday = getDueList('today').length;
   document.getElementById('totalWords').innerText = total;
   document.getElementById('learnedWords').innerText = learned;
   document.getElementById('dueToday').innerText = dueToday;
-  // stats panel
-  const progress = total===0?0: Math.round(learned/total*100);
-  document.getElementById('progressInner').style.width = progress + '%';
 }
 
-/* 统计报告 */
 function renderStatsReport(){
-  if (allWords.length===0) {
-    document.getElementById('statReport').innerHTML = '<div class="muted">词库为空</div>';
-    return;
-  }
+  if(allWords.length === 0){ document.getElementById('statReport').innerHTML = '<div class="muted">词库为空</div>'; return; }
   const total = allWords.length;
-  const learned = allWords.filter(w=>w.learned).length;
+  const learned = allWords.filter(w => w.learned).length;
   const dueToday = getDueList('today').length;
-  // 按章/关统计
   const chapters = {};
-  allWords.forEach(w=>{
-    const ch = w.chapterIdx||0;
-    chapters[ch] = chapters[ch]||{total:0, learned:0};
+  allWords.forEach(w => {
+    const ch = w.chapterIdx || 0;
+    chapters[ch] = chapters[ch] || { total:0, learned:0 };
     chapters[ch].total++;
-    if (w.learned) chapters[ch].learned++;
+    if(w.learned) chapters[ch].learned++;
   });
   let html = `<div class="small">总词数：<strong>${total}</strong> · 已学：<strong>${learned}</strong> · 今日复习：<strong>${dueToday}</strong></div>`;
   html += `<hr><h4>章节进度</h4><table><tr><th>章</th><th>总词</th><th>已学</th><th>进度</th></tr>`;
-  Object.keys(chapters).sort((a,b)=>a-b).forEach(ch=>{
+  Object.keys(chapters).sort((a,b)=>a-b).forEach(ch => {
     const obj = chapters[ch];
-    const pct = Math.round(obj.learned/obj.total*100);
+    const pct = Math.round(obj.learned / obj.total * 100);
     html += `<tr><td>第 ${parseInt(ch)+1} 章</td><td>${obj.total}</td><td>${obj.learned}</td><td>${pct}%</td></tr>`;
   });
   html += `</table>`;
   document.getElementById('statReport').innerHTML = html;
 }
 
-/* -------------------------
-   切换 Tab
-   -------------------------*/
+/* ======= 切换标签 ======= */
 function switchTab(tab){
   currentTab = tab;
-  ['learn','review','upload','stats'].forEach(t=>{
-    document.getElementById('pane-'+t).style.display = (t===tab?'block':'none');
-    document.getElementById('tab-'+t).classList.toggle('active', t===tab);
+  ['learn','review','upload','stats'].forEach(t => {
+    const pane = document.getElementById('pane-' + t);
+    const tabEl = document.getElementById('tab-' + t);
+    if(pane) pane.style.display = (t === tab ? 'block' : 'none');
+    if(tabEl) tabEl.classList.toggle('active', t === tab);
   });
-  if (tab==='review') showDue('today');
-  if (tab==='stats') renderStatsReport();
+  if(tab === 'review') showDue('today');
+  if(tab === 'stats') renderStatsReport();
 }
 
-/* -------------------------
-   通用渲染入口
-   -------------------------*/
-function renderAll(){
-  renderLearn();
-  updateStats();
-  if (currentTab==='review') showDue('today');
-  if (currentTab==='stats') renderStatsReport();
-}
+/* ======= 渲染入口 ======= */
+function renderAll(){ renderLearn(); updateStats(); updateProgressBar(); if(currentTab === 'review') showDue('today'); if(currentTab === 'stats') renderStatsReport(); }
 
-/* -------------------------
-   页面加载入口
-   -------------------------*/
-window.addEventListener('load', ()=> {
+/* ======= 页面启动 ======= */
+window.addEventListener('load', () => {
   loadInitial();
-  // 定期刷新统计（例如每天）
+  // 定期刷新统计（防止 localStorage 被更改）
   setInterval(updateStats, 2000);
 });
 </script>
